@@ -17,7 +17,12 @@
     <p>
         <ol>
         {% for task in tasks %}
-        <li>{{ task|e }}</li>
+        <li>{{ task.name }}
+            <form method="POST" action='/delete-task' style="display:-inline-block">
+                <input type="hidden" name="task-id" value="{{task.id}}" />
+                <input type="submit" value="Done!" />
+            </form>
+        </li>
         {% endfor %}
         </ol>
     </p>
