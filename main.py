@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, render_template, session
+from flask import Flask, request, redirect, render_template, session, flash
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -51,11 +51,12 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user and user.password == password:
             session['email'] = email
+            flash("Logged in")
+            print(session)
 
             return redirect('/')
         else:
-# TODO - explain why the login failed
-            pass
+            flash('User password incorrect, or user does not exist', 'error')
 
     return render_template('login.html')
 
@@ -80,9 +81,7 @@ def register():
 
             return redirect('/')
         else:
-# TODO - user response messaging
-            return '<h1>Duplicate user</h1>'
-
+            flash('That username is already in use, please choose a different name', 'error')
 
     return render_template('register.html')
 
