@@ -1,5 +1,6 @@
 from flask import Flask, request, redirect, render_template, session, flash
 from flask_sqlalchemy import SQLAlchemy
+import re
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
@@ -14,10 +15,12 @@ class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120))
     completed = db.Column(db.Boolean)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
-    def __init__(self, name):
+    def __init__(self, name, owner):
         self.name = name
         self.completed = False
+        self.owner = owner
 
 
 class User(db.Model):
@@ -26,6 +29,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True)
     password = db.Column(db.String(120))
+    tasks = db.relationship('Task', backref='owner')
 
     def __init__(self, email, password):
         self.email = email
@@ -60,6 +64,19 @@ def login():
 
     return render_template('login.html')
 
+def validate_user(email, password, verify):
+    '''Validate username(email address) and password entered. Return specified failure if failed'''
+
+    if not re.match("([^@|\s]+@[^@]+\.[^@|\s]+)", email):
+        return 'email'
+    if len(password) >= 3 and len(password) <= 20:
+        if re.search(r'\s', password):
+            return 'password'
+    else:
+        return 'password'
+    if verify != password:
+        return 'verify'
+
 
 @app.route('/register', methods=['POST', 'GET'])
 def register():
@@ -69,8 +86,15 @@ def register():
         email = request.form['email']
         password = request.form['password']
         verify = request.form['verify']
-
-#TODO - add validation
+    
+        if validate_user(email, password, verify):
+            if validate_user(email, password, verify) == 'email':
+                flash('Not a valid email address', 'error')
+            if validate_user(email, password, verify) == 'password':
+                flash('Not a valid password, please enter a password between 3 and 20 characters long', 'error')
+            if validate_user(email, password, verify) == 'verify':
+                flash('Your passwords did not match', 'error')
+            return render_template('register.html', email=email)
 
         existing_user = User.query.filter_by(email=email).first()
         if not existing_user:
@@ -90,23 +114,27 @@ def register():
 def index():
     '''Add each input posted from todo.html to tasks list'''
 
+    owner = User.query.filter_by(email=session['email']).first()
+
     if request.method == 'POST':
         task_name = request.form['task']
-        if task_name:
-            new_task = Task(task_name)
-            db.session.add(new_task)
-            db.session.commit()
-    
-    tasks = Task.query.filter_by(completed=False).all()
-    completed_tasks = Task.query.filter_by(completed=True).all()
+        new_task = Task(task_name, owner)
+        db.session.add(new_task)
+        db.session.commit()
+
+    tasks = Task.query.filter_by(completed=False, owner=owner).all()
+    completed_tasks = Task.query.filter_by(completed=True, owner=owner).all()
 
     return render_template('todos.html', title="Get It Done", tasks=tasks,
                            completed_tasks=completed_tasks)
 
+
 @app.route('/logout')
-def lougout():
+def logout():
+    '''delete user email from the session and redirect to homepage'''
     del session['email']
     return redirect('/')
+
 
 @app.route('/delete-task', methods=['POST'])
 def delete_task():
