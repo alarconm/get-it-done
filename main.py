@@ -31,15 +31,47 @@ class User(db.Model):
         self.password = password
 
 
-@app.route('/login')
+@app.route('/login', methods=['POST', 'GET'])
 def login():
     '''Display login page to the user'''
+
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        user = User.query.filter_by(email=email).first()
+        if user and user.password == password:
+# TODO - "remember" that the user has logged in
+            return redirect('/')
+        else:
+# TODO - explain why the login failed
+            pass
+
     return render_template('login.html')
 
 
-@app.route('/register')
+@app.route('/register', methods=['POST', 'GET'])
 def register():
     '''Display registration page to the user'''
+
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        verify = request.form['verify']
+
+#TODO - add validation
+
+        existing_user = User.query.filter_by(email=email).first()
+        if not existing_user:
+            new_user = User(email, password)
+            db.session.add(new_user)
+            db.session.commit()
+# TODO -"remember" the user
+            return redirect('/')
+        else:
+# TODO - user response messaging
+            return '<h1>Duplicate user</h1>'
+
+
     return render_template('register.html')
 
 
