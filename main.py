@@ -19,6 +19,30 @@ class Task(db.Model):
         self.completed = False
 
 
+class User(db.Model):
+    '''Create new users once they register through register form and save in database'''
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True)
+    password = db.Column(db.String(120))
+
+    def __init__(self, email, password):
+        self.email = email
+        self.password = password
+
+
+@app.route('/login')
+def login():
+    '''Display login page to the user'''
+    return render_template('login.html')
+
+
+@app.route('/register')
+def register():
+    '''Display registration page to the user'''
+    return render_template('register.html')
+
+
 @app.route('/', methods=['POST', 'GET'])
 def index():
     '''Add each input posted from todo.html to tasks list'''
